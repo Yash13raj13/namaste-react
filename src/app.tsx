@@ -1,131 +1,80 @@
-import RestaurantCard, { withPromotedLabel } from "./RestaurantCard";
-import { useEffect, useState, useContext, useMemo } from "react";
-import Shimmer from "./Shimmer";
-import { Link } from "react-router-dom";
-import useOnlineStatus from "../utils/useOnlineStatus";
-import UserContext from "../utils/UserContext";
+import ReactDOM from "react-dom/client";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import { lazy, Suspense, useEffect, useState } from "react";
 
-/* ---------------- TYPES ---------------- */
-interface Restaurant {
-  info: {
-    id: string;
-    name: string;
-    avgRating: number;
-    isOpen: boolean;
-  };
-}
+import Header from "./components/Header";
+import Body from "./components/Body";
+import About from "./components/About";
+import Contact from "./components/Contact";
+import Error from "./components/error";
+import RestaurantMenu from "./components/RestaurantCard";
+import Cart from "./components/cart";
 
-/* ---------------- CONSTANTS ---------------- */
-const API_URL =
-  "https://foodfire.onrender.com/api/restaurants?lat=21.1702401&lng=72.83106070000001&page_type=DESKTOP_WEB_LISTING";
+import UserContext from "./utils/usercontext";
+import appStore from "./utils/appstore";
+import { Provider } from "react-redux";
+import RestaurantCard from "./components/RestaurantCard";
 
-const TOP_RATING = 4.2;
+// Lazy-loaded components
+const Grocery = lazy(() => import("./components/grocery"));
 
-/* ---------------- COMPONENT ---------------- */
-const Body: React.FC = () => {
-  const [restaurantList, setRestaurantList] = useState<Restaurant[]>([]);
-  const [searchText, setSearchText] = useState("");
-  const [loading, setLoading] = useState(true);
+const AppLayout: React.FC = () => {
+  const [username, setUserName] = useState<string>("Default User");
 
-  const { loggedInUser, setUserName } = useContext(UserContext);
-
-  const isOnline = useOnlineStatus();
-
-  const RestaurantCardWithPromotedLabel = withPromotedLabel(RestaurantCard);
-
-  /* ---------------- FETCH DATA ---------------- */
+  // Simulate API fetch for username
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch(API_URL);
-        const json = await res.json();
-
-        const restaurants =
-          json?.data?.cards?.[4]?.card?.card?.gridElements?.infoWithStyle
-            ?.restaurants ?? [];
-
-        setRestaurantList(restaurants);
-      } catch (err) {
-        console.error("Failed to fetch restaurants:", err);
-      } finally {
-        setLoading(false);
-      }
+    const fetchUser = async () => {
+      // const response = await fetch("/api/user");
+      const data = { name: "Yash Raj" };
+      setUserName(data.name);
     };
 
-    fetchData();
+    fetchUser();
   }, []);
 
-  /* ---------------- FILTERED LIST (Memoized) ---------------- */
-  const filteredRestaurants = useMemo(() => {
-    return restaurantList.filter((res) =>
-      res.info.name.toLowerCase().includes(searchText.toLowerCase())
-    );
-  }, [restaurantList, searchText]);
-
-  /* ---------------- HANDLERS ---------------- */
-  const handleTopRated = () => {
-    const top = restaurantList.filter(
-      (res) => res.info.avgRating > TOP_RATING
-    );
-    setRestaurantList(top);
-  };
-
-  /* ---------------- UI STATES ---------------- */
-  if (!isOnline) {
-    return (
-      <div className="offline-status">
-        <h1>You are offline 😔</h1>
-      </div>
-    );
-  }
-
-  if (loading) return <Shimmer />;
-
-  /* ---------------- RENDER ---------------- */
   return (
-    <div className="body">
-      <div className="subHeader">
-        {/* Top Rated */}
-        <button className="filterbtn" onClick={handleTopRated}>
-          Top Rated Restaurant
-        </button>
-
-        {/* Username */}
-        <input
-          className="border-black"
-          type="text"
-          value={loggedInUser}
-          onChange={(e) => setUserName?.(e.target.value)}
-          placeholder="Tell me Who Are U?"
-        />
-
-        {/* Search */}
-        <input
-          type="text"
-          value={searchText}
-          placeholder="Search restaurants..."
-          onChange={(e) => setSearchText(e.target.value)}
-        />
-      </div>
-
-      <div className="restaurant-container">
-        {filteredRestaurants.map((restaurant) => {
-          const CardComponent = restaurant.info.isOpen
-            ? RestaurantCardWithPromotedLabel
-            : RestaurantCard;
-
-          return (
-            <Link
-              key={restaurant.info.id}
-              to={`/restaurants/${restaurant.info.id}`}
-            >
-              <CardComponent resdata={restaurant} />
-            </Link>
-          );
-        })}
-      </div>
-    </div>
+    <Provider store={appStore}>
+      <UserContext.Provider value={{ loggedInUser: username }}>
+        <div className="min-h-screen">
+          <Header />
+          <Outlet />
+        </div>
+      </UserContext.Provider>
+    </Provider>
   );
 };
 
-export default Body;
+// Router configuration
+const appRouter = createBrowserRouter([
+  {
+    path: "/",
+    element: <AppLayout />,
+    errorElement: <Error />,
+    children: [
+      { path: "/", element: <Body /> },
+      {
+        path: "/about",
+        element: (
+          <Suspense fallback={<h1>Loading About...</h1>}>
+            <About />
+          </Suspense>
+        ),
+      },
+      { path: "/contact", element: <Contact /> },
+      {
+        path: "/grocery",
+        element: (
+          <Suspense fallback={<h1>Loading Grocery...</h1>}>
+            <Grocery />
+          </Suspense>
+        ),
+      },
+      { path: "/restaurants/:resId", element: <RestaurantCard /> },
+      { path: "/cart", element: <Cart /> },
+    ],
+  },
+]);
+
+// Render app
+const root = ReactDOM.createRoot(document.getElementById("root")!);
+root.render(<RouterProvider router={appRouter} />);

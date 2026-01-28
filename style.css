@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* Custom Styles (only what Tailwind can't handle directly) */
+
+/* Shimmer Loader */
+.shimmer-container {
+  @apply flex flex-wrap justify-center gap-4;
+}
+
+.shimmer-card {
+  @apply bg-gray-200 w-52 h-96 m-5 rounded-lg;
+  animation: shimmer 1.5s infinite linear;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+/* Login Button */
+.login-btn {
+  @apply px-4 py-2 rounded-lg shadow text-base cursor-pointer bg-white border border-fuchsia-800 hover:bg-fuchsia-200 transition;
+}
+
+/* Restaurant Card Hover (if you want extra effect beyond Tailwind) */
+.res-card:hover {
+  @apply shadow-lg transform -translate-y-1 transition-all;
+}
