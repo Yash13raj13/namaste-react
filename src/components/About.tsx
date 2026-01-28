@@ -1,6 +1,6 @@
 import UserClass from "./UserClass";
 import { useContext } from "react";
-import UserContext from "../utils/UserContext";
+import UserContext from "../utils/usercontext";
 
 const About = () => {
   const { loggedInUser } = useContext(UserContext);
